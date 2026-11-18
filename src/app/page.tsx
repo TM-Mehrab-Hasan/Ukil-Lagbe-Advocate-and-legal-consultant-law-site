@@ -138,7 +138,7 @@ export default function MarketplaceHomePage() {
           {/* Right 5 Cols: How It Works / Platform Highlights Card */}
           <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-              {lang === "en" ? "How UkilSheba Works" : "কীভাবে কাজ করে"}
+              {lang === "en" ? "How Ukil Lagbe? Works" : "কীভাবে কাজ করে"}
             </span>
 
             <div className="space-y-4">

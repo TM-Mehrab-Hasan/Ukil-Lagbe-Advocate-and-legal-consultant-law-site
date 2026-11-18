@@ -10,7 +10,7 @@ export default function Footer() {
           <Link href="/" className="flex items-center gap-2.5 text-white">
             <Scale className="w-6 h-6 text-amber-400" />
             <span className="text-lg font-bold tracking-tight">
-              UkilSheba<span className="text-amber-400">.</span>
+              Ukil Lagbe?<span className="text-amber-400">.</span>
             </span>
           </Link>
           <p className="text-xs leading-relaxed text-slate-400">
@@ -95,7 +95,7 @@ export default function Footer() {
       <div className="border-t border-slate-900 py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
           <p>
-            © 2026 UkilSheba Global. Designed & Developed by{" "}
+            © 2026 Ukil Lagbe? Global. Designed & Developed by{" "}
             <strong className="text-slate-300">T. M. Mehrab Hasan</strong>.
           </p>
           <p className="text-center sm:text-right max-w-lg">

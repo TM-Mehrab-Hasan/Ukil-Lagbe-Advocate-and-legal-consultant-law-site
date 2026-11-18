@@ -11,7 +11,7 @@ const hindSiliguri = Hind_Siliguri({
 });
 
 export const metadata: Metadata = {
-  title: "UkilSheba | Advocates & Legal Consultants, Bangladesh",
+  title: "Ukil Lagbe? | Advocates & Legal Consultants, Bangladesh",
   description:
     "Supreme Court & Judge Court Advocates in Dhaka, Bangladesh. Corporate, Land, Writ, Family & Criminal Law.",
 };

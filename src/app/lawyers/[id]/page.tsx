@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -23,7 +23,7 @@ import BookingModal from "@/components/BookingModal";
 import { Language, legalIssues } from "@/data/content";
 import { useLawyers } from "@/lib/storage";
 
-export default function AdvocateProfilePage() {
+function AdvocateProfileContent() {
   const params = useParams<{ id: string }>();
   const lawyers = useLawyers();
   const [lang, setLang] = useState<Language>("en");
@@ -39,7 +39,7 @@ export default function AdvocateProfilePage() {
         <main className="flex-1 max-w-3xl mx-auto py-20 px-4 text-center space-y-4">
           <h1 className="text-2xl font-bold text-slate-900">Advocate Profile Not Found</h1>
           <p className="text-sm text-slate-600">
-            The advocate profile link may have changed or is not registered yet.
+            The advocate profile link may have changed or is still loading from the database.
           </p>
           <Link
             href="/#directory"
@@ -64,7 +64,11 @@ export default function AdvocateProfilePage() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col bg-slate-50 ${lang === "bn" ? "font-[family-name:var(--font-bangla)]" : ""}`}>
+    <div
+      className={`min-h-screen flex flex-col bg-slate-50 ${
+        lang === "bn" ? "font-[family-name:var(--font-bangla)]" : ""
+      }`}
+    >
       <Navbar lang={lang} setLang={setLang} />
 
       {/* Top Breadcrumb Bar */}
@@ -268,5 +272,19 @@ export default function AdvocateProfilePage() {
         lang={lang}
       />
     </div>
+  );
+}
+
+export default function AdvocateProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-sm text-slate-600">
+          Loading advocate profile...
+        </div>
+      }
+    >
+      <AdvocateProfileContent />
+    </Suspense>
   );
 }

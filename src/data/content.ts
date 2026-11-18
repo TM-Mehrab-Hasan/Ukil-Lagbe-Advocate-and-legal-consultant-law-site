@@ -2,6 +2,7 @@ export type Language = 'en' | 'bn';
 
 export interface LawyerProfile {
   id: string;
+  userId?: string; // Links to Supabase Auth user
   name: string;
   bnName: string;
   title: string;
@@ -236,6 +237,7 @@ export const initialLawyers: LawyerProfile[] = [
 
 export interface ClientCase {
   caseId: string;
+  lawyerId?: string; // Links case to specific advocate
   clientPhone: string;
   clientName: string;
   assignedLawyer: string;
@@ -281,3 +283,4 @@ export const initialCases: ClientCase[] = [
     ],
   },
 ];
+

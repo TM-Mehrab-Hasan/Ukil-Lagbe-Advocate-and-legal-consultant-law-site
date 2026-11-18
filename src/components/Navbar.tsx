@@ -28,7 +28,7 @@ export default function Navbar({ lang, setLang }: NavbarProps) {
           </div>
           <div>
             <span className="block text-lg font-bold tracking-tight text-white">
-              {lang === "en" ? "UkilSheba" : "উকিলসেবা"}
+              {lang === "en" ? "Ukil Lagbe?" : "উকিলসেবা"}
               <span className="text-amber-400">.</span>
             </span>
             <span className="block text-[11px] text-slate-400">

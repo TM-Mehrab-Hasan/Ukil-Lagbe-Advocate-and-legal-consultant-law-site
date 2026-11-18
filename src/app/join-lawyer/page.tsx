@@ -3,16 +3,23 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, UserPlus, Loader2, Lock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Language, legalIssues } from "@/data/content";
 import { addStoredLawyer } from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
 
 export default function JoinLawyerPage() {
   const router = useRouter();
   const [lang, setLang] = useState<Language>("en");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Account Credentials
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Profile Details
   const [name, setName] = useState("");
   const [bnName, setBnName] = useState("");
   const [title, setTitle] = useState("Advocate, Dhaka Bar Association");
@@ -35,13 +42,28 @@ export default function JoinLawyerPage() {
     );
   };
 
-  const handleRegister = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (selectedSpecialties.length === 0) {
       alert("Please select at least one practice area.");
       return;
     }
 
+    setIsSubmitting(true);
+
+    // 1. Create Supabase Auth Account
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+
+    if (authError || !authData.user) {
+      setIsSubmitting(false);
+      alert(`Account registration failed: ${authError?.message || "Unknown error"}`);
+      return;
+    }
+
+    // 2. Create Linked Advocate Profile in PostgreSQL
     const cleanWhatsapp = whatsapp.replace(/\D/g, "");
     const formattedWhatsapp = cleanWhatsapp.startsWith("88")
       ? cleanWhatsapp
@@ -52,8 +74,9 @@ export default function JoinLawyerPage() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")}-${Date.now().toString().slice(-3)}`;
 
-    addStoredLawyer({
+    await addStoredLawyer({
       id: slugId,
+      userId: authData.user.id,
       name,
       bnName: bnName || name,
       title,
@@ -75,7 +98,8 @@ export default function JoinLawyerPage() {
       bnBio: bio,
     });
 
-    router.push(`/lawyers/${slugId}`);
+    setIsSubmitting(false);
+    router.push("/admin");
   };
 
   return (
@@ -86,16 +110,15 @@ export default function JoinLawyerPage() {
     >
       <Navbar lang={lang} setLang={setLang} />
 
-      {/* Top Breadcrumb */}
       <div className="bg-slate-900 text-slate-300 py-3.5 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
         <div className="max-w-3xl mx-auto flex justify-between items-center text-xs">
           <Link href="/#directory" className="hover:text-amber-400 flex items-center gap-1.5">
             <ArrowLeft className="w-4 h-4" />
             {lang === "en" ? "Back to Advocates Directory" : "আইনজীবী তালিকায় ফিরে যান"}
           </Link>
-          <span className="text-amber-400 font-semibold">
-            {lang === "en" ? "Free Advocate Onboarding" : "বিনামূল্যে আইনজীবী নিবন্ধন"}
-          </span>
+          <Link href="/admin" className="text-amber-400 hover:underline font-semibold">
+            {lang === "en" ? "Already registered? Login to Diary →" : "আগে নিবন্ধিত? লগইন করুন →"}
+          </Link>
         </div>
       </div>
 
@@ -103,20 +126,55 @@ export default function JoinLawyerPage() {
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase tracking-wider">
             <UserPlus className="w-4 h-4" />
-            {lang === "en" ? "Grow Your Legal Practice" : "আপনার আইনি পেশা প্রসারিত করুন"}
+            {lang === "en" ? "Free Advocate Onboarding" : "বিনামূল্যে আইনজীবী নিবন্ধন"}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
             {lang === "en"
-              ? "Create Your Verified Advocate Profile"
-              : "আপনার যাচাইকৃত আইনজীবী প্রোফাইল তৈরি করুন"}
+              ? "Create Your Advocate Account & Profile"
+              : "আপনার আইনজীবী অ্যাকাউন্ট ও প্রোফাইল তৈরি করুন"}
           </h1>
           <p className="text-sm text-slate-600 mt-1.5 mb-6 leading-relaxed">
-            {lang === "en"
-              ? "Whether you are newly enrolled with the Bar Council or an experienced practitioner, set your transparent consultation fees and connect directly with clients needing your expertise."
-              : "আপনি নবীন বা অভিজ্ঞ যে আইনজীবীই হোন না কেন, আপনার স্বচ্ছ পরামর্শ ফি নির্ধারণ করুন এবং সরাসরি মক্কেলদের সাথে যুক্ত হোন।"}
+            Set up your login credentials to manage your availability, consultation fees, client bookings, and court diary from anywhere.
           </p>
 
           <form onSubmit={handleRegister} className="space-y-5 text-sm">
+            {/* Account Login Credentials */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-800">
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>Step 1: Advocate Login Credentials</span>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="advocate@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Password (min 6 characters) *
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    minLength={6}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Name & Bangla Name */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -340,9 +398,13 @@ export default function JoinLawyerPage() {
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition cursor-pointer"
+              disabled={isSubmitting}
+              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
             >
-              Publish Advocate Profile & View Live Page
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin text-amber-400" />}
+              {isSubmitting
+                ? "Creating Account & Profile..."
+                : "Create Account & Open My Lawyer Diary"}
             </button>
           </form>
         </div>

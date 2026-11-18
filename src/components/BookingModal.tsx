@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, CheckCircle2, Calendar, Video, Building2, CreditCard } from "lucide-react";
+import { X, CheckCircle2, Calendar, Video, Building2, CreditCard, Loader2 } from "lucide-react";
 import { Language, LawyerProfile } from "@/data/content";
 import { addStoredBooking } from "@/lib/storage";
 
@@ -13,21 +13,26 @@ interface BookingModalProps {
 
 export default function BookingModal({ lawyer, onClose, lang }: BookingModalProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<"chamber" | "online">("online");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [date, setDate] = useState("");
   const [matter, setMatter] = useState("");
-  const [payNow, setPayNow] = useState(false);
+  const [payNow, setPayNow] = useState(true);
 
   if (!lawyer) return null;
 
   const activeFee = mode === "chamber" ? lawyer.chamberFee : lawyer.onlineFee;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    addStoredBooking({
-      id: `BK-${Date.now().toString().slice(-5)}`,
+    setIsSubmitting(true);
+
+    const bookingId = `BK-${Date.now().toString().slice(-6)}`;
+
+    await addStoredBooking({
+      id: bookingId,
       lawyerId: lawyer.id,
       lawyerName: lawyer.name,
       clientName: name,
@@ -36,9 +41,38 @@ export default function BookingModal({ lawyer, onClose, lang }: BookingModalProp
       mode,
       date,
       fee: `৳${activeFee}`,
-      paymentStatus: payNow ? "Paid (bKash/SSL)" : "Pending",
+      paymentStatus: "Pending",
       createdAt: new Date().toLocaleDateString(),
     });
+
+    if (payNow) {
+      try {
+        const res = await fetch("/api/payment/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId,
+            amount: activeFee,
+            clientName: name,
+            phone,
+            matter,
+            lawyerName: lawyer.name,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.gatewayUrl) {
+          window.location.href = data.gatewayUrl;
+          return;
+        } else {
+          alert(data.error || "Could not open payment gateway. Booking saved as Pending.");
+        }
+      } catch {
+        alert("Payment gateway unreachable. Booking saved as Pending.");
+      }
+    }
+
+    setIsSubmitting(false);
     setSubmitted(true);
   };
 
@@ -48,7 +82,7 @@ export default function BookingModal({ lawyer, onClose, lang }: BookingModalProp
     setPhone("");
     setDate("");
     setMatter("");
-    setPayNow(false);
+    setPayNow(true);
     onClose();
   };
 
@@ -70,8 +104,8 @@ export default function BookingModal({ lawyer, onClose, lang }: BookingModalProp
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
               {lang === "en"
-                ? `Your request with ${lawyer.name} (Fee: ৳${activeFee}) has been sent. You will receive confirmation via SMS/WhatsApp.`
-                : `${lawyer.bnName}-এর সাথে আপনার অ্যাপয়েন্টমেন্ট অনুরোধ পাঠানো হয়েছে (ফি: ৳${activeFee})।`}
+                ? `Your request with ${lawyer.name} (Fee: ৳${activeFee}) has been saved as Pay at Chamber.`
+                : `${lawyer.bnName}-এর সাথে আপনার অ্যাপয়েন্টমেন্ট অনুরোধ সংরক্ষণ করা হয়েছে (ফি: ৳${activeFee})।`}
             </p>
             <button
               onClick={resetAndClose}
@@ -189,17 +223,32 @@ export default function BookingModal({ lawyer, onClose, lang }: BookingModalProp
                 <CreditCard className="w-4 h-4 text-pink-600 shrink-0" />
                 <span>
                   {lang === "en"
-                    ? `Pay ৳${activeFee} now via bKash / Nagad / Card (Demo)`
-                    : `বিকাশ / নগদ / কার্ডে এখনই ৳${activeFee} পরিশোধ করুন`}
+                    ? `Pay ৳${activeFee} online now (bKash / Nagad / Rocket / Card)`
+                    : `অনলাইনে এখনই ৳${activeFee} পরিশোধ করুন (বিকাশ / নগদ / কার্ড)`}
                 </span>
               </label>
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-lg flex items-center justify-center gap-2 transition cursor-pointer"
+                disabled={isSubmitting}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-semibold text-sm rounded-lg flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <Calendar className="w-4 h-4 text-amber-400" />
-                {lang === "en" ? "Confirm Booking" : "বুকিং নিশ্চিত করুন"}
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                ) : (
+                  <Calendar className="w-4 h-4 text-amber-400" />
+                )}
+                {isSubmitting
+                  ? lang === "en"
+                    ? "Connecting to Payment Gateway..."
+                    : "পেমেন্ট গেটওয়েতে যুক্ত হচ্ছে..."
+                  : payNow
+                  ? lang === "en"
+                    ? `Proceed to Pay ৳${activeFee}`
+                    : `৳${activeFee} পরিশোধ করুন`
+                  : lang === "en"
+                  ? "Confirm Booking (Pay at Chamber)"
+                  : "বুকিং নিশ্চিত করুন"}
               </button>
             </form>
           </>
